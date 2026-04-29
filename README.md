@@ -1,14 +1,18 @@
 # GST Invoice Generator
 
-A modern, responsive GST invoice generator for Indian businesses built with Next.js, TypeScript, Tailwind CSS, React Hook Form, Zod, LocalStorage, and jsPDF.
+A modern, responsive GST invoice generator for Indian businesses built with Next.js, TypeScript, Tailwind CSS, React Hook Form, Zod, Neon Postgres on Vercel, and jsPDF.
 
-The app lets users create GST invoices, save profile defaults, manage invoice history, preview invoices, and download clean A4 PDF tax invoices. It also includes a public landing page and a local admin dashboard for viewing registered users.
+The app lets users create GST invoices, save profile defaults, manage invoice history, preview invoices, and download clean A4 PDF tax invoices. It also includes a public landing page and an admin dashboard for viewing registered users.
+
+## Live Demo
+
+https://gst-invoice-generator-nine.vercel.app/
 
 ## Features
 
 - Public landing page for visitors
 - Mobile-first responsive UI
-- Local signup and login flow
+- Signup and login flow backed by Postgres
 - Profile settings for default seller details
 - Business logo upload for invoices
 - GST invoice creation form
@@ -22,7 +26,7 @@ The app lets users create GST invoices, save profile defaults, manage invoice hi
 - Downloadable A4 PDF invoice using jsPDF
 - PDF filename format: `GST-Invoice-{invoice-number}.pdf`
 - Invoice history with edit, delete, and re-download
-- Per-user invoice storage in LocalStorage
+- Per-user invoice storage in Postgres
 - Admin login and user management dashboard
 - Contact section for custom software development inquiries
 
@@ -37,7 +41,7 @@ The app lets users create GST invoices, save profile defaults, manage invoice hi
 - jsPDF
 - Lucide React icons
 - Sonner toast notifications
-- LocalStorage
+- Neon Postgres / Vercel Marketplace database
 
 ## Getting Started
 
@@ -54,7 +58,21 @@ cd gst-invoice-generator
 npm install
 ```
 
-### 3. Start the development server
+### 3. Configure environment variables
+
+Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Add your Neon/Vercel Postgres connection string:
+
+```env
+DATABASE_URL="postgres://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+```
+
+### 4. Start the development server
 
 ```bash
 npm run dev
@@ -117,7 +135,7 @@ Runs TypeScript type checking.
 
 ## Admin Credentials
 
-The current admin login is local/demo only:
+The current admin login is demo-only and defined in code:
 
 ```txt
 Email: admin@gst.local
@@ -210,30 +228,58 @@ The app automatically calculates:
 
 ## LocalStorage Data
 
-This project currently stores data in browser LocalStorage:
+This project now stores app data in Postgres through API routes:
 
 - User accounts
-- Current user session
 - User profile defaults
 - Uploaded logo data URL
 - Invoices
-- Admin session
 
 Invoices are stored per logged-in user.
 
+The browser only keeps a small session object containing the current `userId`.
+
 ## Important Security Note
 
-This project uses LocalStorage-based authentication for demo purposes only. Passwords are stored in the browser and are not secure for production use.
+This project still uses demo authentication logic. User passwords are stored in the database as plain text to keep the sample beginner-friendly. Do not use this auth implementation in production.
 
-For a real production app, replace LocalStorage auth with a secure backend or authentication provider such as:
+For a real production app, replace the demo auth with a secure backend or authentication provider such as:
 
 - NextAuth/Auth.js
 - Clerk
 - Supabase Auth
 - Firebase Auth
-- Custom backend with encrypted password storage
+- Custom backend with hashed password storage
 
-You should also move invoice data to a database such as PostgreSQL, MySQL, MongoDB, Firebase, or Supabase.
+You should also add secure sessions, password hashing, validation on every API route, and role-based admin access.
+
+## Vercel Database Setup
+
+Vercel Postgres is no longer created directly for new projects. Use a Vercel Marketplace Postgres integration such as Neon.
+
+### Recommended setup
+
+1. Push this repository to GitHub.
+2. Create or open your project in Vercel.
+3. Go to the Vercel Marketplace and install the Neon Postgres integration.
+4. Connect the Neon database to this Vercel project.
+5. Confirm that Vercel adds `DATABASE_URL` to the project environment variables.
+6. Redeploy the project.
+
+The API routes automatically create the required tables the first time they are used:
+
+```txt
+app_users
+invoices
+```
+
+### Local development with Vercel env
+
+After linking the project with Vercel, you can pull environment variables locally:
+
+```bash
+vercel env pull .env.local
+```
 
 ## PDF Download
 
@@ -301,9 +347,10 @@ Output directory:
 ## Suggested Future Improvements
 
 - Backend API
-- Real authentication
-- Database storage
+- Production authentication
 - Role-based admin access
+- Password hashing
+- HttpOnly cookie sessions
 - Invoice number sequencing
 - Company/team workspaces
 - Email invoice to buyer

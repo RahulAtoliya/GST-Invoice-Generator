@@ -1,39 +1,36 @@
 "use client";
 
 import type { AuthSession, UserAccount, UserProfile } from "@/types/auth";
+import type { Invoice } from "@/types/invoice";
+export { emptyProfile } from "@/lib/defaults";
 
-const USERS_KEY = "gst-users";
 const SESSION_KEY = "gst-session";
 export const AUTH_CHANGE_EVENT = "gst-auth-change";
 
-export const emptyProfile: UserProfile = {
-  businessName: "",
-  gstin: "",
-  address: "",
-  contact: "",
-  logoDataUrl: "",
-  defaultPlaceOfSupply: "",
-  defaultStateCode: "",
-  defaultTerms: "Payment due within 15 days. Subject to applicable GST rules.",
-};
+export interface AdminUserRow {
+  user: UserAccount;
+  invoices: Invoice[];
+}
 
 function emitAuthChange() {
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
-export function getUsers(): UserAccount[] {
-  if (typeof window === "undefined") return [];
+async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+  const data = await response.json();
 
-  try {
-    const raw = window.localStorage.getItem(USERS_KEY);
-    return raw ? (JSON.parse(raw) as UserAccount[]) : [];
-  } catch {
-    return [];
+  if (!response.ok) {
+    throw new Error(data.error ?? "Request failed.");
   }
-}
 
-export function saveUsers(users: UserAccount[]) {
-  window.localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  return data as T;
 }
 
 export function getCurrentSession(): AuthSession | null {
@@ -47,46 +44,35 @@ export function getCurrentSession(): AuthSession | null {
   }
 }
 
-export function getCurrentUser() {
+function setSession(userId: string) {
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify({ userId }));
+  emitAuthChange();
+}
+
+export async function getCurrentUser() {
   const session = getCurrentSession();
   if (!session) return null;
-  return getUsers().find((user) => user.id === session.userId) ?? null;
+
+  const data = await apiRequest<{ user: UserAccount | null }>(`/api/auth/me?userId=${encodeURIComponent(session.userId)}`);
+  return data.user;
 }
 
-export function signUpUser(input: { name: string; email: string; password: string }) {
-  const users = getUsers();
-  const email = input.email.trim().toLowerCase();
-
-  if (users.some((user) => user.email === email)) {
-    throw new Error("An account with this email already exists.");
-  }
-
-  const user: UserAccount = {
-    id: crypto.randomUUID(),
-    name: input.name.trim(),
-    email,
-    password: input.password,
-    profile: emptyProfile,
-    createdAt: new Date().toISOString(),
-  };
-
-  saveUsers([user, ...users]);
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: user.id }));
-  emitAuthChange();
-  return user;
+export async function signUpUser(input: { name: string; email: string; password: string }) {
+  const data = await apiRequest<{ user: UserAccount }>("/api/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  setSession(data.user.id);
+  return data.user;
 }
 
-export function loginUser(input: { email: string; password: string }) {
-  const email = input.email.trim().toLowerCase();
-  const user = getUsers().find((item) => item.email === email && item.password === input.password);
-
-  if (!user) {
-    throw new Error("Invalid email or password.");
-  }
-
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: user.id }));
-  emitAuthChange();
-  return user;
+export async function loginUser(input: { email: string; password: string }) {
+  const data = await apiRequest<{ user: UserAccount }>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  setSession(data.user.id);
+  return data.user;
 }
 
 export function logoutUser() {
@@ -94,21 +80,29 @@ export function logoutUser() {
   emitAuthChange();
 }
 
-export function updateCurrentUserProfile(profile: UserProfile) {
-  const currentUser = getCurrentUser();
-  if (!currentUser) {
+export async function updateCurrentUserProfile(profile: UserProfile) {
+  const session = getCurrentSession();
+  if (!session) {
     throw new Error("Please login to update profile settings.");
   }
 
-  const users = getUsers().map((user) => (user.id === currentUser.id ? { ...user, profile } : user));
-  saveUsers(users);
+  const data = await apiRequest<{ user: UserAccount }>("/api/profile", {
+    method: "PUT",
+    body: JSON.stringify({ userId: session.userId, profile }),
+  });
   emitAuthChange();
-  return users.find((user) => user.id === currentUser.id)!;
+  return data.user;
 }
 
-export function deleteUserAccount(userId: string) {
-  const users = getUsers().filter((user) => user.id !== userId);
-  saveUsers(users);
+export async function getAdminUsers() {
+  const data = await apiRequest<{ users: AdminUserRow[] }>("/api/admin/users");
+  return data.users;
+}
+
+export async function deleteUserAccount(userId: string) {
+  await apiRequest<{ ok: true }>(`/api/admin/users?userId=${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+  });
 
   const session = getCurrentSession();
   if (session?.userId === userId) {
@@ -116,5 +110,4 @@ export function deleteUserAccount(userId: string) {
   }
 
   emitAuthChange();
-  return users;
 }

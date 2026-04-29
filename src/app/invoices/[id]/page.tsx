@@ -24,19 +24,32 @@ export default function InvoiceDetailPage() {
 function InvoiceDetailContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<Invoice | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    const found = getInvoiceById(params.id);
-    setInvoice(found ?? null);
+    getInvoiceById(params.id)
+      .then((found) => setInvoice(found ?? null))
+      .catch(() => setInvoice(null));
   }, [params.id]);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!invoice) return;
-    deleteInvoice(invoice.id);
-    toast.success("Invoice deleted");
-    router.push("/invoices");
+    try {
+      await deleteInvoice(invoice.id);
+      toast.success("Invoice deleted");
+      router.push("/invoices");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete invoice.");
+    }
+  }
+
+  if (invoice === undefined) {
+    return (
+      <div className="container-page">
+        <div className="panel p-8 text-center text-sm text-stone-600">Loading invoice...</div>
+      </div>
+    );
   }
 
   if (!invoice) {

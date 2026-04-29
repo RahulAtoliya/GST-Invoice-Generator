@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,25 +16,24 @@ const today = new Date().toISOString().slice(0, 10);
 
 function newInvoiceDefaults(): Invoice {
   const now = new Date().toISOString();
-  const profile = getCurrentUser()?.profile;
 
   return {
     id: crypto.randomUUID(),
-    sellerBusinessName: profile?.businessName ?? "",
-    sellerGstin: profile?.gstin ?? "",
-    sellerAddress: profile?.address ?? "",
-    sellerContact: profile?.contact ?? "",
-    sellerLogoDataUrl: profile?.logoDataUrl ?? "",
+    sellerBusinessName: "",
+    sellerGstin: "",
+    sellerAddress: "",
+    sellerContact: "",
+    sellerLogoDataUrl: "",
     buyerName: "",
     buyerGstin: "",
     buyerAddress: "",
     invoiceNumber: `GST-${Date.now().toString().slice(-6)}`,
     invoiceDate: today,
     dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    placeOfSupply: profile?.defaultPlaceOfSupply ?? "",
-    stateCode: profile?.defaultStateCode ?? "",
+    placeOfSupply: "",
+    stateCode: "",
     notes: "",
-    terms: profile?.defaultTerms ?? "",
+    terms: "",
     createdAt: now,
     updatedAt: now,
     items: [
@@ -64,7 +64,25 @@ export function InvoiceForm({ initialInvoice }: { initialInvoice?: Invoice }) {
     name: "items",
   });
 
-  function onSubmit(values: InvoiceFormValues) {
+  useEffect(() => {
+    if (initialInvoice) return;
+
+    getCurrentUser()
+      .then((user) => {
+        if (!user) return;
+        form.setValue("sellerBusinessName", user.profile.businessName);
+        form.setValue("sellerGstin", user.profile.gstin);
+        form.setValue("sellerAddress", user.profile.address);
+        form.setValue("sellerContact", user.profile.contact);
+        form.setValue("sellerLogoDataUrl", user.profile.logoDataUrl ?? "");
+        form.setValue("placeOfSupply", user.profile.defaultPlaceOfSupply);
+        form.setValue("stateCode", user.profile.defaultStateCode);
+        form.setValue("terms", user.profile.defaultTerms);
+      })
+      .catch(() => toast.error("Unable to load profile defaults."));
+  }, [form, initialInvoice]);
+
+  async function onSubmit(values: InvoiceFormValues) {
     const now = new Date().toISOString();
     const invoice: Invoice = {
       ...values,
@@ -76,9 +94,13 @@ export function InvoiceForm({ initialInvoice }: { initialInvoice?: Invoice }) {
       })),
     };
 
-    upsertInvoice(invoice);
-    toast.success("Invoice saved");
-    router.push(`/invoices/${invoice.id}`);
+    try {
+      await upsertInvoice(invoice);
+      toast.success("Invoice saved");
+      router.push(`/invoices/${invoice.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save invoice.");
+    }
   }
 
   return (

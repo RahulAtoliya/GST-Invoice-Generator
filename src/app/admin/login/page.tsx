@@ -32,12 +32,13 @@ export default function AdminLoginPage() {
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <label>
             <span className="field-label">Admin email</span>
-            <input className="field-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <input className="field-input" type="email"  onChange={(event) => setEmail(event.target.value)} required />
           </label>
           <label>
             <span className="field-label">Password</span>
-            <input className="field-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <input className="field-input" type="password"  onChange={(event) => setPassword(event.target.value)} required />
           </label>
+           <br /><br />
           <Button type="submit" className="w-full">
             <LockKeyhole className="size-4" /> Login as admin
           </Button>

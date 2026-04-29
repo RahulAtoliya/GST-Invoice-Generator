@@ -14,7 +14,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (password.length < 6) {
@@ -23,7 +23,7 @@ export default function SignupPage() {
     }
 
     try {
-      signUpUser({ name, email, password });
+      await signUpUser({ name, email, password });
       toast.success("Account created");
       router.push("/profile");
     } catch (error) {
@@ -49,6 +49,7 @@ export default function SignupPage() {
             <span className="field-label">Password</span>
             <input className="field-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
+          <br /><br />
           <Button type="submit" className="w-full">
             <UserPlus className="size-4" /> Signup
           </Button>

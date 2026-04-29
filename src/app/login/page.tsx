@@ -13,11 +13,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
-      loginUser({ email, password });
+      await loginUser({ email, password });
       toast.success("Logged in successfully");
       router.push("/profile");
     } catch (error) {
@@ -39,6 +39,7 @@ export default function LoginPage() {
             <span className="field-label">Password</span>
             <input className="field-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
+           <br /><br />
           <Button type="submit" className="w-full">
             <LogIn className="size-4" /> Login
           </Button>

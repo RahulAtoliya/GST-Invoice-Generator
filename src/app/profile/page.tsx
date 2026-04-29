@@ -5,7 +5,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser, updateCurrentUserProfile } from "@/lib/auth";
+import { emptyProfile, getCurrentUser, updateCurrentUserProfile } from "@/lib/auth";
 import type { UserAccount, UserProfile } from "@/types/auth";
 
 export default function ProfilePage() {
@@ -30,22 +30,25 @@ function ProfileSettings() {
   });
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setProfile(currentUser.profile);
-    }
+    getCurrentUser()
+      .then((currentUser) => {
+        if (currentUser) {
+          setUser(currentUser);
+          setProfile({ ...emptyProfile, ...currentUser.profile });
+        }
+      })
+      .catch(() => toast.error("Unable to load profile."));
   }, []);
 
   function updateField<Key extends keyof UserProfile>(key: Key, value: UserProfile[Key]) {
     setProfile((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
-      const updatedUser = updateCurrentUserProfile({
+      const updatedUser = await updateCurrentUserProfile({
         ...profile,
         gstin: profile.gstin.toUpperCase(),
       });

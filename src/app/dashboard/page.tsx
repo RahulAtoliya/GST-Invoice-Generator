@@ -22,7 +22,7 @@ function DashboardContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
-    setInvoices(getInvoices());
+    getInvoices().then(setInvoices).catch(() => setInvoices([]));
   }, []);
 
   const stats = useMemo(() => {

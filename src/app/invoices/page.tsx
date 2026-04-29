@@ -25,7 +25,7 @@ function InvoicesContent() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    setInvoices(getInvoices());
+    getInvoices().then(setInvoices).catch(() => setInvoices([]));
   }, []);
 
   const filteredInvoices = useMemo(() => {
@@ -38,9 +38,13 @@ function InvoicesContent() {
     );
   }, [invoices, query]);
 
-  function handleDelete(id: string) {
-    setInvoices(deleteInvoice(id));
-    toast.success("Invoice deleted");
+  async function handleDelete(id: string) {
+    try {
+      setInvoices(await deleteInvoice(id));
+      toast.success("Invoice deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete invoice.");
+    }
   }
 
   return (

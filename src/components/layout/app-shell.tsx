@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [admin, setAdmin] = useState<AdminSession | null>(null);
 
   useEffect(() => {
-    const syncUser = () => setUser(getCurrentUser());
+    const syncUser = async () => setUser(await getCurrentUser());
     const syncAdmin = () => setAdmin(getAdminSession());
     syncUser();
     syncAdmin();

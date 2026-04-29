@@ -6,13 +6,14 @@ import { toast } from "sonner";
 import { AdminGuard } from "@/components/layout/admin-guard";
 import { Button } from "@/components/ui/button";
 import { calculateInvoice } from "@/lib/calculations";
-import { deleteUserAccount, getUsers } from "@/lib/auth";
-import { deleteInvoicesForUserId, getInvoicesForUserId } from "@/lib/storage";
+import { deleteUserAccount, getAdminUsers } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { UserAccount } from "@/types/auth";
+import type { Invoice } from "@/types/invoice";
 
 interface UserRow {
   user: UserAccount;
+  invoices: Invoice[];
   invoiceCount: number;
   taxableTotal: number;
   gstTotal: number;
@@ -28,50 +29,65 @@ export default function AdminPage() {
 }
 
 function AdminDashboard() {
-  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [rows, setRows] = useState<UserRow[]>([]);
 
   useEffect(() => {
-    setUsers(getUsers());
+    async function loadUsers() {
+      try {
+        const users = await getAdminUsers();
+        setRows(
+          users.map(({ user, invoices }) => {
+            const totals = invoices.reduce(
+              (acc, invoice) => {
+                const calc = calculateInvoice(invoice);
+                return {
+                  taxableTotal: acc.taxableTotal + calc.taxableTotal,
+                  gstTotal: acc.gstTotal + calc.totalGst,
+                  grandTotal: acc.grandTotal + calc.grandTotal,
+                };
+              },
+              { taxableTotal: 0, gstTotal: 0, grandTotal: 0 },
+            );
+
+            return {
+              user,
+              invoices,
+              invoiceCount: invoices.length,
+              ...totals,
+            };
+          }),
+        );
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load users.");
+      }
+    }
+
+    loadUsers();
   }, []);
 
-  const rows = useMemo<UserRow[]>(() => {
-    return users.map((user) => {
-      const invoices = getInvoicesForUserId(user.id);
-      const totals = invoices.reduce(
-        (acc, invoice) => {
-          const calc = calculateInvoice(invoice);
-          return {
-            taxableTotal: acc.taxableTotal + calc.taxableTotal,
-            gstTotal: acc.gstTotal + calc.totalGst,
-            grandTotal: acc.grandTotal + calc.grandTotal,
-          };
-        },
-        { taxableTotal: 0, gstTotal: 0, grandTotal: 0 },
-      );
-
-      return {
-        user,
-        invoiceCount: invoices.length,
-        ...totals,
-      };
-    });
-  }, [users]);
-
-  const stats = rows.reduce(
-    (acc, row) => ({
-      users: acc.users + 1,
-      invoices: acc.invoices + row.invoiceCount,
-      taxable: acc.taxable + row.taxableTotal,
-      gst: acc.gst + row.gstTotal,
-      total: acc.total + row.grandTotal,
-    }),
-    { users: 0, invoices: 0, taxable: 0, gst: 0, total: 0 },
+  const stats = useMemo(
+    () =>
+      rows.reduce(
+        (acc, row) => ({
+          users: acc.users + 1,
+          invoices: acc.invoices + row.invoiceCount,
+          taxable: acc.taxable + row.taxableTotal,
+          gst: acc.gst + row.gstTotal,
+          total: acc.total + row.grandTotal,
+        }),
+        { users: 0, invoices: 0, taxable: 0, gst: 0, total: 0 },
+      ),
+    [rows],
   );
 
-  function handleDeleteUser(userId: string) {
-    deleteInvoicesForUserId(userId);
-    setUsers(deleteUserAccount(userId));
-    toast.success("User and invoices deleted");
+  async function handleDeleteUser(userId: string) {
+    try {
+      await deleteUserAccount(userId);
+      setRows((current) => current.filter((row) => row.user.id !== userId));
+      toast.success("User and invoices deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete user.");
+    }
   }
 
   return (

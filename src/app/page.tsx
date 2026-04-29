@@ -32,7 +32,7 @@ const workflow = [
 const contactLinks = [
   { label: "Email", value: "contact.rahulatoliya@gmail.com", href: "mailto:contact.rahulatoliya@gmail.com", icon: Mail },
   { label: "Phone", value: "+91 96445 01885", href: "tel:+919644501885", icon: PhoneCall },
-  { label: "LinkedIn", value: "linkedin.com/in/rahulatoliya", href: "https://www.linkedin.com/in/rahulatoliya", icon: LinkIcon },
+  { label: "LinkedIn", value: "linkedin.com/in/rahul-atoliya", href: "https://linkedin.com/in/rahul-atoliya", icon: LinkIcon },
   { label: "GitHub", value: "github.com/rahulatoliya", href: "https://github.com/rahulatoliya", icon: Code2 },
 ];
 
@@ -81,7 +81,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wider text-mint">Tax Invoice</p>
-                  <h2 className="mt-1 text-xl font-black text-ink">Aarav Trading Co.</h2>
+                  <h2 className="mt-1 text-xl font-black text-ink">Rahul Trading Co.</h2>
                 </div>
                 <div className="w-fit rounded-md bg-mint px-3 py-2 text-sm font-bold text-white">GST-204826</div>
               </div>
