@@ -367,4 +367,4 @@ For customized software development, use the contact section on the landing page
 
 ## License
 
-This project is currently not licensed. Add a license file before distributing it publicly if needed.
+This project is currently not licensed. 
